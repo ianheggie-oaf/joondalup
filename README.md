@@ -30,6 +30,8 @@ Saving record DA25/0966 - 26A Woodland Loop, Edgewater, WA
   Fetching detail page: https://www.joondalup.wa.gov.au/community-and-spaces/community-consultation/6-pompano-court,-heathridge-–-single-house-(additions)
   Extracted DA25/0858 from detail page
 ...
+Deleting records scraped before 2025-12-25
+  Deleted 1 records
 Finished! Added 10 records, and skipped 0 unprocessable records from 1 pages.
 ```
 

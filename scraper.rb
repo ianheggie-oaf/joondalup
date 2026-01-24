@@ -40,11 +40,11 @@ class Scraper
     # Look for "Development Application Reference:" heading
     detail_page.search("h3").each do |h3|
       text = h3.text
-      if text =~ /Development Application Reference:\s*(.+)/
-        ref = $1.strip
-        puts "  Extracted #{ref} from detail page"
-        return ref
-      end
+      next unless text =~ /Development Application Reference:\s*(.+)/
+
+      ref = ::Regexp.last_match(1).strip
+      puts "  Extracted #{ref} from detail page"
+      return ref
     end
 
     puts "  Unable to extract reference from: #{info_url}"
@@ -63,17 +63,19 @@ class Scraper
       "FS" => 12,
       "PG" => page_number,
       "PR" => [
-        {"key" => "widgetclassname", "values" => [{"value" => "AWConsultationSmartSearchListing"}]},
-        {"key" => "widgettemplatename", "values" => [{"value" => "AWConsultationSmartSearchListing"}]},
-        {"key" => "classname", "values" => [{"value" => "AWPT.Consultation"}]},
-        {"key" => "nodealiaspath", "values" => [{"value" => "/Community-and-Spaces/Community-consultation-(Have-your-say)"}]},
-        {"key" => "keyword", "values" => [{"value" => ""}]},
-        {"OR" => true, "key" => "Status", "operater" => "like", "values" => [{"value" => "31"}]},
-        {"OR" => true, "key" => "ArticleType", "operater" => "like", "values" => [{"value" => "Development Applications"}]},
-        {"OR" => true, "key" => "Topics", "operater" => "like", "values" => []},
-        {"OR" => true, "key" => "Suburb", "operater" => "like", "values" => []}
+        { "key" => "widgetclassname", "values" => [{ "value" => "AWConsultationSmartSearchListing" }] },
+        { "key" => "widgettemplatename", "values" => [{ "value" => "AWConsultationSmartSearchListing" }] },
+        { "key" => "classname", "values" => [{ "value" => "AWPT.Consultation" }] },
+        { "key" => "nodealiaspath",
+          "values" => [{ "value" => "/Community-and-Spaces/Community-consultation-(Have-your-say)" }], },
+        { "key" => "keyword", "values" => [{ "value" => "" }] },
+        { "OR" => true, "key" => "Status", "operater" => "like", "values" => [{ "value" => "31" }] },
+        { "OR" => true, "key" => "ArticleType", "operater" => "like",
+          "values" => [{ "value" => "Development Applications" }], },
+        { "OR" => true, "key" => "Topics", "operater" => "like", "values" => [] },
+        { "OR" => true, "key" => "Suburb", "operater" => "like", "values" => [] },
       ],
-      "IncludeFirst" => false
+      "IncludeFirst" => false,
     }
   end
 
@@ -100,7 +102,7 @@ class Scraper
       response = agent.post(
         SEARCH_URL,
         build_search_payload(page_number).to_json,
-        {"Content-Type" => "application/json", "X-Requested-With" => "XMLHttpRequest"}
+        { "Content-Type" => "application/json", "X-Requested-With" => "XMLHttpRequest" }
       )
       @pause_duration = (Time.now.to_f - start_time + 0.5).round(3)
 
@@ -135,12 +137,19 @@ class Scraper
         end
 
         # Use aria-label as description, fallback to title
-        description = link["aria-label"]&.strip&.chomp(".").chomp
-        description = title if description.to_s.empty?
+        full_text = link["aria-label"]&.strip&.chomp(".")&.chomp
+        full_text = title if full_text.to_s.empty?
 
-        # Extract address from description (everything before the dash)
-        address = description.gsub(/\s*–.*/, "").strip
-        address = "#{address}, #{STATE}" unless address.end_with?(STATE)
+        # Extract address and description (split on dash with surrounding whitespace)
+        # Match both – (en dash) and - (hyphen)
+        if full_text =~ /\A(.+?)\s+[–-]\s+(.+)\z/
+          address = ::Regexp.last_match(1).strip
+          description = ::Regexp.last_match(2).strip
+          address = "#{address}, #{STATE}" unless address.end_with?(STATE)
+        else
+          puts "Warning - Unable to parse address and description from: #{full_text} (skipped)"
+          next
+        end
 
         # Extract dates from the fa-ul list
         on_notice_from = nil
@@ -149,9 +158,9 @@ class Scraper
         article.search("ul.fa-ul li").each do |li|
           text = clean_whitespace(li.text)
           if text =~ /Open date:\s*(.+)/
-            on_notice_from = parse_date($1)
+            on_notice_from = parse_date(::Regexp.last_match(1))
           elsif text =~ /Closing date:\s*(.+)/
-            on_notice_to = parse_date($1)
+            on_notice_to = parse_date(::Regexp.last_match(1))
           end
         end
 
@@ -176,7 +185,18 @@ class Scraper
       break if page_number > 100 # Safety limit
     end
 
-    puts "Finished! Added #{added} records, and skipped #{found - added} unprocessable records from #{page_number} pages."
+    # Clean up applications older than 30 days
+    cutoff_date = (Date.today - 30).to_s
+    puts "Deleting applications scraped before #{cutoff_date}"
+    deleted_count = ScraperWiki.sqliteexecute(
+      "SELECT COUNT(*) FROM data WHERE date_scraped < ?",
+      [cutoff_date]
+    ).first.values.first
+    ScraperWiki.sqliteexecute("DELETE FROM data WHERE date_scraped < ?", [cutoff_date])
+
+    puts "  Deleted #{deleted_count} applications" if deleted_count.positive?
+    skipped = found - added
+    puts "Finished! Added #{added} applications, and skipped #{skipped} unprocessable applications from #{page_number} pages."
   end
 end
 
