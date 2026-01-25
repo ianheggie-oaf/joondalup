@@ -79,6 +79,18 @@ class Scraper
     }
   end
 
+  def generate_council_reference(title)
+    # Sanitize: replace non-alphanumeric characters with space, strip
+    sanitized = title.gsub(/[^A-Za-z0-9]+/, " ").strip
+
+    # Truncate to 49 chars and add hyphen if truncated
+    if sanitized.length > 49
+      sanitized[0..48] + "-"
+    else
+      sanitized
+    end
+  end
+
   def run
     agent = Mechanize.new
     agent.verify_mode = OpenSSL::SSL::VERIFY_NONE
@@ -129,7 +141,7 @@ class Scraper
         title = title_elem ? clean_whitespace(title_elem.text) : ""
 
         # Always fetch the detail page to get council reference
-        council_reference = extract_council_reference_from_details(agent, info_url)
+        council_reference = extract_council_reference_from_details(agent, info_url) || generate_council_reference(title)
 
         unless council_reference
           puts "Warning - Unable to extract council reference for #{title} (skipped)"
