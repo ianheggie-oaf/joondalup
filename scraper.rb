@@ -11,12 +11,6 @@ class Scraper
 
   STATE = "WA"
 
-  attr_accessor :pause_duration
-
-  def initialize
-    @pause_duration = 0.0
-  end
-
   def clean_whitespace(text)
     text.gsub("\r", " ").gsub("\n", " ").squeeze(" ").strip
   end
@@ -28,14 +22,48 @@ class Scraper
     nil
   end
 
-  def extract_council_reference_from_details(agent, info_url)
-    puts "  Pausing #{@pause_duration}s"
-    sleep(@pause_duration)
+  attr_accessor :pause_duration
 
-    puts "  Fetching detail page: #{info_url}"
+  # Throttle block to be nice to servers we are scraping
+  def throttle_block(extra_delay: 0.5)
+    if @pause_duration
+      puts "  Pausing #{@pause_duration}s"
+      sleep(@pause_duration)
+    end
     start_time = Time.now.to_f
+    page = yield
+    @pause_duration = (Time.now.to_f - start_time + extra_delay).round(3)
+    page
+  end
+
+  # Cleanup and vacuum database of old records (planning alerts only looks at last 5 days)
+  def cleanup_old_records
+    cutoff_date = (Date.today - 30).to_s
+    vacuum_cutoff_date = (Date.today - 35).to_s
+
+    stats = ScraperWiki.sqliteexecute(
+      "SELECT COUNT(*) as count, MIN(date_scraped) as oldest FROM data WHERE date_scraped < ?",
+      [cutoff_date]
+    ).first
+
+    deleted_count = stats["count"]
+    oldest_date = stats["oldest"]
+
+    return unless deleted_count.positive? || ENV["VACUUM"]
+
+    puts "Deleting #{deleted_count} applications scraped between #{oldest_date} and #{cutoff_date}"
+    ScraperWiki.sqliteexecute("DELETE FROM data WHERE date_scraped < ?", [cutoff_date])
+
+    # VACUUM roughly once each 33 days or if older than 35 days (first time) or if VACUUM is set
+    return unless rand < 0.03 || (oldest_date && oldest_date < vacuum_cutoff_date) || ENV["VACUUM"]
+
+    puts "  Running VACUUM to reclaim space..."
+    ScraperWiki.sqliteexecute("VACUUM")
+  end
+
+  def extract_council_reference_from_details(agent, info_url)
+    puts "  Fetching detail page: #{info_url}"
     detail_page = agent.get(info_url)
-    @pause_duration = (Time.now.to_f - start_time + 0.5).round(3)
 
     # Look for "Development Application Reference:" heading
     detail_page.search("h3").each do |h3|
@@ -96,27 +124,23 @@ class Scraper
     agent.verify_mode = OpenSSL::SSL::VERIFY_NONE
 
     # Visit the main page first to set cookies and play nice
-    puts "Getting initial page"
-    start_time = Time.now.to_f
-    agent.get(INITIAL_PAGE_URL)
-    @pause_duration = (Time.now.to_f - start_time + 0.5).round(3)
+    throttle_block do
+      puts "Getting initial page"
+      agent.get(INITIAL_PAGE_URL)
+    end
 
     page_number = 1
     added = found = 0
 
     loop do
-      puts "Pausing #{@pause_duration}s"
-      sleep(@pause_duration)
-
-      puts "Getting page #{page_number}"
-
-      start_time = Time.now.to_f
-      response = agent.post(
-        SEARCH_URL,
-        build_search_payload(page_number).to_json,
-        { "Content-Type" => "application/json", "X-Requested-With" => "XMLHttpRequest" }
-      )
-      @pause_duration = (Time.now.to_f - start_time + 0.5).round(3)
+      response = throttle_block do
+        puts "Getting page #{page_number}"
+        response = agent.post(
+          SEARCH_URL,
+          build_search_payload(page_number).to_json,
+          { "Content-Type" => "application/json", "X-Requested-With" => "XMLHttpRequest" }
+        )
+      end
 
       data = JSON.parse(response.body)
       html = data["htmlResult"]
@@ -197,16 +221,7 @@ class Scraper
       break if page_number > 100 # Safety limit
     end
 
-    # Clean up applications older than 30 days
-    cutoff_date = (Date.today - 30).to_s
-    puts "Deleting applications scraped before #{cutoff_date}"
-    deleted_count = ScraperWiki.sqliteexecute(
-      "SELECT COUNT(*) FROM data WHERE date_scraped < ?",
-      [cutoff_date]
-    ).first.values.first
-    ScraperWiki.sqliteexecute("DELETE FROM data WHERE date_scraped < ?", [cutoff_date])
-
-    puts "  Deleted #{deleted_count} applications" if deleted_count.positive?
+    cleanup_old_records
     skipped = found - added
     puts "Finished! Added #{added} applications, and skipped #{skipped} unprocessable applications from #{page_number} pages."
   end
