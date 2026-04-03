@@ -1,0 +1,73 @@
+---
+- council_reference: 15 Quarram Crescent Burns Beach Single house carp-
+  address: 15 Quarram Crescent, Burns Beach, WA
+  description: Single house (carport addition - retrospective)
+  info_url: https://www.joondalup.wa.gov.au/community-and-spaces/community-consultation/15-quarram-crescent%2C-burns-beach-%E2%80%93-single-house-%28carport-addition-retrospective%29
+  date_scraped: '2026-02-20'
+  on_notice_from: '2026-03-30'
+  on_notice_to: '2026-04-20'
+- council_reference: DA24/0523.01
+  address: 25 Mackay Way, Hillarys, WA
+  description: Grouped dwelling (two new three storey dwellings – modification to
+    previous approval dA24/0523)
+  info_url: https://www.joondalup.wa.gov.au/community-and-spaces/community-consultation/25-mackay-way%2C-hillarys-%E2%80%93-grouped-dwelling-%28two-new-three-storey-dwellings-%E2%80%93-modification-to-previou
+  date_scraped: '2026-02-20'
+  on_notice_from: '2026-03-30'
+  on_notice_to: '2026-04-20'
+- council_reference: DA25/0180
+  address: 4 and 4A Dalmain Street, Kingsley, WA
+  description: Grouped dwelling (additions – retrospective)
+  info_url: https://www.joondalup.wa.gov.au/community-and-spaces/community-consultation/4-and-4a-dalmain-street%2C-kingsley-%E2%80%93-grouped-dwelling-%28additions-%E2%80%93-retrospective%29
+  date_scraped: '2026-02-20'
+  on_notice_from: '2026-03-31'
+  on_notice_to: '2026-04-21'
+- council_reference: DA25/0921
+  address: 6 Cingalee Place, Craigie, WA
+  description: Grouped dwelling (new dwelling)
+  info_url: https://www.joondalup.wa.gov.au/community-and-spaces/community-consultation/6-cingalee-place%2C-craigie-%E2%80%93-grouped-dwelling-%28new-dwelling%29
+  date_scraped: '2026-02-20'
+  on_notice_from: '2026-03-30'
+  on_notice_to: '2026-04-20'
+- council_reference: DA26/0065
+  address: 21 Millimumul Way, Mullaloo, WA
+  description: Single house (additions)
+  info_url: https://www.joondalup.wa.gov.au/community-and-spaces/community-consultation/21-millimumul-way%2C-mullaloo-%E2%80%93-single-house-%28additions%29
+  date_scraped: '2026-02-20'
+  on_notice_from: '2026-03-30'
+  on_notice_to: '2026-04-20'
+- council_reference: DA26/0092
+  address: 5 / 86 Winton Road, Joondalup, WA
+  description: Motor vehicle repairs (change of use)
+  info_url: https://www.joondalup.wa.gov.au/community-and-spaces/community-consultation/5-86-winton-road%2C-joondalup-%E2%80%93-motor-vehicle-repairs-%28change-of-use%29
+  date_scraped: '2026-02-20'
+  on_notice_from: '2026-03-31'
+  on_notice_to: '2026-04-21'
+- council_reference: DA26/0106
+  address: 10C Nyara Crescent, Craigie, WA
+  description: Grouped dwelling (new dwelling)
+  info_url: https://www.joondalup.wa.gov.au/community-and-spaces/community-consultation/10c-nyara-crescent%2C-craigie-%E2%80%93-grouped-dwelling-%28new-dwelling%29
+  date_scraped: '2026-02-20'
+  on_notice_from: '2026-04-01'
+  on_notice_to: '2026-04-22'
+- council_reference: DA26/0136
+  address: 75 Cook Avenue, Hillarys, WA
+  description: Unhosted short-term accommodation (change of use)
+  info_url: https://www.joondalup.wa.gov.au/community-and-spaces/community-consultation/75-cook-avenue%2C-hillarys-unhosted-short-term-accommodation-%28change-of-use%29
+  date_scraped: '2026-02-20'
+  on_notice_from: '2026-03-30'
+  on_notice_to: '2026-04-20'
+- council_reference: DA26/0142
+  address: 26 & 28 Sundew Rise, Joondalup, WA
+  description: Recreation private (two storey gym)
+  info_url: https://www.joondalup.wa.gov.au/community-and-spaces/community-consultation/26-28-sundew-rise%2C-joondalup-%E2%80%93-recreation-private-%28two-storey-gym%29
+  date_scraped: '2026-02-20'
+  on_notice_from: '2026-04-01'
+  on_notice_to: '2026-04-22'
+- council_reference: DA26/0145
+  address: 38 Arawa Place, Craigie, WA
+  description: Grouped dwelling (three new dwellings). Grouped dwellings (three new
+    dwellings)
+  info_url: https://www.joondalup.wa.gov.au/community-and-spaces/community-consultation/grouped-dwelling-%28three-new-dwellings%29-at-38-arawa-place%2C-craigie
+  date_scraped: '2026-02-20'
+  on_notice_from: '2026-03-27'
+  on_notice_to: '2026-04-17'
