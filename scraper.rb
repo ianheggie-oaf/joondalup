@@ -4,6 +4,8 @@
 require "scraperwiki"
 require "mechanize"
 require "json"
+require "scraper_utils"
+require "uri"
 
 class Scraper
   INITIAL_PAGE_URL = "https://www.joondalup.wa.gov.au/community-and-spaces/community-consultation"
@@ -20,45 +22,6 @@ class Scraper
     Date.parse(date_string).to_s
   rescue ArgumentError
     nil
-  end
-
-  attr_accessor :pause_duration
-
-  # Throttle block to be nice to servers we are scraping
-  def throttle_block(extra_delay: 0.5)
-    if @pause_duration
-      puts "  Pausing #{@pause_duration}s"
-      sleep(@pause_duration)
-    end
-    start_time = Time.now.to_f
-    page = yield
-    @pause_duration = (Time.now.to_f - start_time + extra_delay).round(3)
-    page
-  end
-
-  # Cleanup and vacuum database of old records (planning alerts only looks at last 5 days)
-  def cleanup_old_records
-    cutoff_date = (Date.today - 30).to_s
-    vacuum_cutoff_date = (Date.today - 35).to_s
-
-    stats = ScraperWiki.sqliteexecute(
-      "SELECT COUNT(*) as count, MIN(date_scraped) as oldest FROM data WHERE date_scraped < ?",
-      [cutoff_date]
-    ).first
-
-    deleted_count = stats["count"]
-    oldest_date = stats["oldest"]
-
-    return unless deleted_count.positive? || ENV["VACUUM"]
-
-    puts "Deleting #{deleted_count} applications scraped between #{oldest_date} and #{cutoff_date}"
-    ScraperWiki.sqliteexecute("DELETE FROM data WHERE date_scraped < ?", [cutoff_date])
-
-    # VACUUM roughly once each 33 days or if older than 35 days (first time) or if VACUUM is set
-    return unless rand < 0.03 || (oldest_date && oldest_date < vacuum_cutoff_date) || ENV["VACUUM"]
-
-    puts "  Running VACUUM to reclaim space..."
-    ScraperWiki.sqliteexecute("VACUUM")
   end
 
   def extract_council_reference_from_details(agent, info_url)
@@ -119,12 +82,20 @@ class Scraper
     end
   end
 
+  # Encode a url path with utf characters whilst keeping path separators (/)
+  # Uses the modern RFC 3986 compliant method rather than the deprecated escape
+  def encode_path(path)
+    path.split("/", -1).map do |segment|
+      URI.encode_uri_component(segment)
+    end.join("/")
+  end
+
   def run
     agent = Mechanize.new
     agent.verify_mode = OpenSSL::SSL::VERIFY_NONE
 
     # Visit the main page first to set cookies and play nice
-    throttle_block do
+    ScraperUtils::MiscUtils.throttle_block do
       puts "Getting initial page"
       agent.get(INITIAL_PAGE_URL)
     end
@@ -133,7 +104,7 @@ class Scraper
     added = found = 0
 
     loop do
-      response = throttle_block do
+      response = ScraperUtils::MiscUtils.throttle_block do
         puts "Getting page #{page_number}"
         response = agent.post(
           SEARCH_URL,
@@ -159,8 +130,7 @@ class Scraper
         next unless link
 
         # Percent encode everything that is not a valid url path
-        path = link["href"].gsub(%r{[^/\w\-.,()%]}) { |c| URI::DEFAULT_PARSER.escape(c) }
-        info_url = "https://www.joondalup.wa.gov.au#{path}"
+        info_url = "https://www.joondalup.wa.gov.au#{encode_path link['href']}"
 
         # Get title from h3.card-title
         title_elem = article.at("h3.card-title")
@@ -213,7 +183,7 @@ class Scraper
         record["on_notice_to"] = on_notice_to if on_notice_to
 
         added += 1
-        puts "Saving record #{council_reference} - #{address}"
+        puts "Saving record #{council_reference} - #{address}#{ENV['DEBUG'] ? " #{info_url}" : ''}"
         ScraperWiki.save_sqlite(["council_reference"], record)
       end
 
@@ -223,7 +193,7 @@ class Scraper
       break if page_number > 100 # Safety limit
     end
 
-    cleanup_old_records
+    ScraperUtils::DbUtils.cleanup_old_records(force: true)
     skipped = found - added
     puts "Finished! Added #{added} applications, and skipped #{skipped} unprocessable applications from #{page_number} pages."
   end
