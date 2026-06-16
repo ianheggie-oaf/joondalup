@@ -113,7 +113,7 @@ class Scraper
 
     # Truncate to 49 chars and add hyphen if truncated
     if sanitized.length > 49
-      sanitized[0..48] + "-"
+      "#{sanitized[0..48]}-"
     else
       sanitized
     end
@@ -158,7 +158,9 @@ class Scraper
         link = article.at("a.hotbox")
         next unless link
 
-        info_url = "https://www.joondalup.wa.gov.au" + link["href"]
+        # Percent encode everything that is not a valid url path
+        path = link["href"].gsub(%r{[^/\w\-.,()%]}) { |c| URI::DEFAULT_PARSER.escape(c) }
+        info_url = "https://www.joondalup.wa.gov.au#{path}"
 
         # Get title from h3.card-title
         title_elem = article.at("h3.card-title")
