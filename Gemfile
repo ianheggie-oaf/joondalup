@@ -10,7 +10,7 @@ ruby "3.2.2"
 
 gem "mechanize", "~> 2.14"
 gem "nokogiri", "~> 1.16.5" # Latest version the platform supports
-gem "scraper_utils", path: "~/Projects/OpenAustralia/my_repos/scraper_utils" # "~> 0.12.1"
+gem "scraper_utils", "~> 0.12.1"
 gem "scraperwiki", git: "https://github.com/openaustralia/scraperwiki-ruby.git",
                    branch: "morph_defaults"
 gem "sqlite3", "~> 1.6.3"
