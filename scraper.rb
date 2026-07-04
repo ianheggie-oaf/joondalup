@@ -193,7 +193,7 @@ class Scraper
       break if page_number > 100 # Safety limit
     end
 
-    ScraperUtils::DbUtils.cleanup_old_records(force: true)
+    ScraperUtils::DbUtils.cleanup_old_records
     skipped = found - added
     puts "Finished! Added #{added} applications, and skipped #{skipped} unprocessable applications from #{page_number} pages."
   end
